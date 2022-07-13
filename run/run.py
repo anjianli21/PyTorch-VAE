@@ -4,13 +4,15 @@ import argparse
 import numpy as np
 from pathlib import Path
 from models import *
-from experiment import VAEXperiment
+from experiment.experiment import VAEXperiment
 import torch.backends.cudnn as cudnn
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from dataset import VAEDataset
+from dataset.dataset import VAEDataset
+from dataset.gaussian_dataset import GaussianDataset
+
 from pytorch_lightning.plugins import DDPPlugin
 
 
@@ -39,13 +41,15 @@ model = vae_models[config['model_params']['name']](**config['model_params'])
 experiment = VAEXperiment(model,
                           config['exp_params'])
 
+# use **config to represent a bunch of parameters instead of one parameter?
 data = VAEDataset(**config["data_params"], pin_memory=len(config['trainer_params']['gpus']) != 0)
+# data = GaussianDataset(**config["data_params"], pin_memory=len(config['trainer_params']['gpus']) != 0)
 
 data.setup()
 runner = Trainer(logger=tb_logger,
                  callbacks=[
                      LearningRateMonitor(),
-                     ModelCheckpoint(save_top_k=2, 
+                     ModelCheckpoint(save_top_k=2, # the best k models according to the quantity monitored will be saved
                                      dirpath =os.path.join(tb_logger.log_dir , "checkpoints"), 
                                      monitor= "val_loss",
                                      save_last= True),

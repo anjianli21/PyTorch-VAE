@@ -5,76 +5,57 @@ from torch.nn import functional as F
 from .types_ import *
 
 
-class VanillaVAE(BaseVAE):
-
+class VAE1d(BaseVAE):
 
     def __init__(self,
-                 in_channels: int,
+                 in_dims: int,
                  latent_dim: int,
                  hidden_dims: List = None,
                  **kwargs) -> None:
-        super(VanillaVAE, self).__init__()
+        super(VAE1d, self).__init__()
 
         self.latent_dim = latent_dim
-        self.init_in_channels = in_channels
+        self.in_dims = in_dims
 
         modules = []
         if hidden_dims is None:
-            hidden_dims = [32, 64, 128, 256, 512]
+            # hidden_dims = [64, 64, 32, 32, 16, 16]
+            hidden_dims = [32, 16]
 
         # Build Encoder
         for h_dim in hidden_dims:
             modules.append(
                 nn.Sequential(
-                    nn.Conv2d(in_channels, out_channels=h_dim,  # in_channel: Number of channels in the input image,
-                              # initial in_channel is 3, then is [32, 64, 128, 256, 512], between each is a conv2d
-                              kernel_size= 3, stride= 2, padding  = 1),
-                    nn.BatchNorm2d(h_dim),
+                    nn.Linear(in_dims, h_dim),
                     nn.LeakyReLU())
             )
-            in_channels = h_dim
+            in_dims = h_dim
 
         self.encoder = nn.Sequential(*modules)
-        self.fc_mu = nn.Linear(hidden_dims[-1]*4, latent_dim)  # Use fully connected layers to get latent dim
-        self.fc_var = nn.Linear(hidden_dims[-1]*4, latent_dim)
-
+        self.fc_mu = nn.Linear(hidden_dims[-1], latent_dim)  # Use fully connected layers to get latent dim
+        self.fc_var = nn.Linear(hidden_dims[-1], latent_dim)
 
         # Build Decoder
         modules = []
 
-        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1] * 4)
+        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1])
 
         hidden_dims.reverse()  # decoder is just the reverse of the encoder
 
         for i in range(len(hidden_dims) - 1):
             modules.append(
                 nn.Sequential(
-                    nn.ConvTranspose2d(hidden_dims[i],
-                                       hidden_dims[i + 1],
-                                       kernel_size=3,
-                                       stride = 2,
-                                       padding=1,
-                                       output_padding=1),
-                    nn.BatchNorm2d(hidden_dims[i + 1]),
+                    nn.Linear(hidden_dims[i],
+                              hidden_dims[i + 1]),
                     nn.LeakyReLU())
             )
-
-
 
         self.decoder = nn.Sequential(*modules)
 
         self.final_layer = nn.Sequential(
-                            nn.ConvTranspose2d(hidden_dims[-1],
-                                               hidden_dims[-1],
-                                               kernel_size=3,
-                                               stride=2,
-                                               padding=1,
-                                               output_padding=1),  # This module can be seen as the gradient of Conv2d with respect to its input.
-                            nn.BatchNorm2d(hidden_dims[-1]),
-                            nn.LeakyReLU(),
-                            nn.Conv2d(hidden_dims[-1], out_channels= self.init_in_channels,
-                                      kernel_size= 3, padding= 1),
-                            nn.Tanh())
+            nn.Linear(hidden_dims[-1], self.in_dims)
+            # nn.Tanh()  # if use tanh(), then the output is within [-1, 1]
+        )
 
     def encode(self, input: Tensor) -> List[Tensor]:
         """
@@ -83,8 +64,10 @@ class VanillaVAE(BaseVAE):
         :param input: (Tensor) Input tensor to encoder [N x C x H x W]
         :return: (Tensor) List of latent codes
         """
+        # print(input.size())
+        # print(self.encoder)
         result = self.encoder(input)
-        result = torch.flatten(result, start_dim=1)
+        # result = torch.flatten(result, start_dim=1)
 
         # Split the result into mu and var components
         # of the latent Gaussian distribution
@@ -101,7 +84,6 @@ class VanillaVAE(BaseVAE):
         :return: (Tensor) [B x C x H x W]
         """
         result = self.decoder_input(z)
-        result = result.view(-1, 512, 2, 2)
         result = self.decoder(result)
         result = self.final_layer(result)
         return result
@@ -114,14 +96,14 @@ class VanillaVAE(BaseVAE):
         :param logvar: (Tensor) Standard deviation of the latent Gaussian [B x D]
         :return: (Tensor) [B x D]
         """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
+        std = torch.exp(0.5 * logvar)  # exp( (1/2) * log (var) ) = (var)^(1/2)
+        eps = torch.randn_like(std)  # normal distribution with mean 0 and variance 1.
         return eps * std + mu
 
     def forward(self, input: Tensor, **kwargs) -> List[Tensor]:
         mu, log_var = self.encode(input)
         z = self.reparameterize(mu, log_var)
-        return  [self.decode(z), input, mu, log_var]
+        return [self.decode(z), input, mu, log_var]
 
     def loss_function(self,
                       *args,
@@ -138,16 +120,24 @@ class VanillaVAE(BaseVAE):
         mu = args[2]
         log_var = args[3]
 
-        kld_weight = kwargs['M_N'] # Account for the minibatch samples from the dataset
-        recons_loss =F.mse_loss(recons, input)
+        # print("\n")
+        # print("mu is", mu.size(), mu)
+        # print("log_var is", log_var.size(), log_var)
+        # print("input is", input.size(), input)
+        # print("reconstruction is", recons.size(), recons)
 
-        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+
+        kld_weight = kwargs['M_N']  # Account for the minibatch samples from the dataset
+        recons_loss = F.mse_loss(recons, input)
+
+
+        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
 
         loss = recons_loss + kld_weight * kld_loss
-        return {'loss': loss, 'Reconstruction_Loss':recons_loss.detach(), 'KLD':-kld_loss.detach()}
+        return {'loss': loss, 'Reconstruction_Loss': recons_loss.detach(), 'KLD': -kld_loss.detach()}
 
     def sample(self,
-               num_samples:int,
+               num_samples: int,
                current_device: int, **kwargs) -> Tensor:
         """
         Samples from the latent space and return the corresponding

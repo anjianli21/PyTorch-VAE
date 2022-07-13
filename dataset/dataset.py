@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.datasets import CelebA
 import zipfile
-
+import numpy
 
 # Add your custom dataset class here
 class MyDataset(Dataset):

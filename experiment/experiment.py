@@ -4,7 +4,7 @@ import torch
 from torch import optim
 from models import BaseVAE
 from models.types_ import *
-from utils import data_loader
+from utils.utils import data_loader
 import pytorch_lightning as pl
 from torchvision import transforms
 import torchvision.utils as vutils
@@ -40,25 +40,31 @@ class VAEXperiment(pl.LightningModule):
                                               M_N = self.params['kld_weight'], #al_img.shape[0]/ self.num_train_imgs,
                                               optimizer_idx=optimizer_idx,
                                               batch_idx = batch_idx)
+        print("training loss", train_loss)
 
         self.log_dict({key: val.item() for key, val in train_loss.items()}, sync_dist=True)
 
         return train_loss['loss']
 
     def validation_step(self, batch, batch_idx, optimizer_idx = 0):
+
         real_img, labels = batch
+        # print(real_img.size())
         self.curr_device = real_img.device
 
         results = self.forward(real_img, labels = labels)
+        # print("result is")
+        # for result in results:
+        #     print(result.size())
         val_loss = self.model.loss_function(*results,
                                             M_N = 1.0, #real_img.shape[0]/ self.num_val_imgs,
                                             optimizer_idx = optimizer_idx,
                                             batch_idx = batch_idx)
-
+        print("validation loss ", val_loss)
         self.log_dict({f"val_{key}": val.item() for key, val in val_loss.items()}, sync_dist=True)
 
         
-    def on_validation_end(self) -> None:
+    def on_validation_end(self) -> None:  # Called at the end of validation.
         self.sample_images()
         
     def sample_images(self):
