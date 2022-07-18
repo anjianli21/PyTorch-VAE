@@ -1,3 +1,7 @@
+import sys
+# sys.path.append('..')
+sys.path.append('./')
+print(sys.path)
 import os
 import yaml
 import argparse
@@ -14,6 +18,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from dataset.my_dataset import MyDataset
 
 from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.core.saving import save_hparams_to_yaml
 
 parser = argparse.ArgumentParser(description='Generic runner for VAE models')
 parser.add_argument('--config', '-c',
@@ -35,12 +40,12 @@ tb_logger = TensorBoardLogger(save_dir=config['logging_params']['save_dir'],
 # For reproducibility
 seed_everything(config['exp_params']['manual_seed'], True)
 
-model = vae_models[config['model_params']['name']](**config['model_params'])
+model = vae_models[config['model_params']['name']](**config['model_params'], **config['data_params'])
 experiment = ExperimentVAE1d(model,
                              config['exp_params'])
 
 # use **config to represent a bunch of parameters instead of one parameter?
-data = MyDataset(**config["data_params"], pin_memory=len(config['trainer_params']['gpus']) != 0)
+data = MyDataset(**config["data_params"], **config['model_params'], pin_memory=len(config['trainer_params']['gpus']) != 0)
 
 data.setup()
 runner = Trainer(logger=tb_logger,
@@ -50,7 +55,7 @@ runner = Trainer(logger=tb_logger,
                                      # the best k models according to the quantity monitored will be saved
                                      dirpath=os.path.join(tb_logger.log_dir, "checkpoints"),
                                      monitor="val_loss",
-                                     save_last=True),
+                                     save_last=True)
                  ],
                  strategy=DDPPlugin(find_unused_parameters=False),
                  **config['trainer_params'])
@@ -60,4 +65,12 @@ Path(f"{tb_logger.log_dir}/Samples").mkdir(exist_ok=True, parents=True)
 
 
 print(f"======= Training {config['model_params']['name']} =======")
+
+with open(r'/home/anjian/Desktop/project/PyTorch-VAE/configs/vae_1d.yaml') as file:
+    vae_1d_config = yaml.load(file, Loader=yaml.FullLoader)
+
+path_file = tb_logger.log_dir + "/" + "vae_1d_hparam.yaml"
+with open(path_file, 'w') as file:
+    documents = yaml.dump(vae_1d_config, file)
+
 runner.fit(experiment, datamodule=data)

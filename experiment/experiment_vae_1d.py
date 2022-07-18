@@ -12,6 +12,10 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 
+from pytorch_lightning.core.saving import save_hparams_to_yaml
+import yaml
+
+
 class ExperimentVAE1d(pl.LightningModule):
 
     def __init__(self,
@@ -27,6 +31,8 @@ class ExperimentVAE1d(pl.LightningModule):
             self.hold_graph = self.params['retain_first_backpass']
         except:
             pass
+
+        self.save_hyperparameters()
 
     def forward(self, input: Tensor, **kwargs) -> Tensor:
         return self.model(input, **kwargs)
@@ -84,11 +90,24 @@ class ExperimentVAE1d(pl.LightningModule):
             plt.hist(samples[:, 0])
             # plt.show()
 
-            file_name = os.path.join(self.logger.log_dir,
+            image_file_name = os.path.join(self.logger.log_dir,
                                            "Samples",
                                            f"{self.logger.name}_Epoch_{self.current_epoch}.png")
 
-            plt.savefig(file_name)
+            plt.savefig(image_file_name)
+
+            sample_mean = np.mean(samples, axis=0)
+            sample_var = np.var(samples, axis=0)
+
+            sample_stat = {"sample_mean": sample_mean.tolist(),
+                           "sample_var": sample_var.tolist()}
+
+            sample_stat_file_name = os.path.join(self.logger.log_dir,
+                                           "Samples",
+                                           f"{self.logger.name}_Epoch_{self.current_epoch}_sample_stat.yml")
+
+            with open(sample_stat_file_name, 'w') as outfile:
+                yaml.dump(sample_stat, outfile, default_flow_style=False)
 
         except Warning:
             pass
