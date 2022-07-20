@@ -102,6 +102,15 @@ class ExperimentVAE1d(pl.LightningModule):
             sample_var = np.var(samples, axis=0)
             sample_cov = np.cov(samples, rowvar=False)
 
+            plt.clf()
+            plt.matshow(sample_cov)
+            plt.colorbar()
+            # plt.show()
+            cov_file_name = os.path.join(self.logger.log_dir,
+                                           "Samples/images",
+                                           f"{self.logger.name}_Epoch_{self.current_epoch}_covariance.png")
+            plt.savefig(cov_file_name)
+
             sample_stat = {"sample_mean": sample_mean.tolist(),
                            "sample_var": sample_var.tolist(),
                            "sample_z_covariance": sample_cov.tolist()}

@@ -51,7 +51,7 @@ data.setup()
 runner = Trainer(logger=tb_logger,
                  callbacks=[
                      LearningRateMonitor(),
-                     ModelCheckpoint(save_top_k=2,
+                     ModelCheckpoint(save_top_k=-1,
                                      # the best k models according to the quantity monitored will be saved
                                      dirpath=os.path.join(tb_logger.log_dir, "checkpoints"),
                                      monitor="val_loss",
