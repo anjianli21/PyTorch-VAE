@@ -1,19 +1,19 @@
 model_params:
   name: 'VAEConv1d'
   in_channels: 1  # 16
-  latent_dim: 4  # 8
-  hidden_channels: [8, 8, 4]  # [64, 32]
+  latent_dim: 8  # 8
+  hidden_channels: [64, 32]  # [64, 32]
 
 
 data_params:
   train_batch_size: 64  # 64
   val_batch_size:  64
   num_workers: 4
-  data_dim: 64  # 16, should be the same as hidden_dims
+  data_dim: 16  # 16, should be the same as hidden_dims
 
 
 exp_params:
-  LR: 0.0005  # 0.005
+  LR: 0.005  # 0.005
   weight_decay: 0.0  # 0.0
   scheduler_gamma: 0.95
   kld_weight: 0.00025  # 0.00025

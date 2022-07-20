@@ -11,6 +11,7 @@ import torchvision.utils as vutils
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 import yaml
@@ -85,25 +86,28 @@ class ExperimentVAE1d(pl.LightningModule):
                                         self.curr_device)
             samples = samples.cpu().data.numpy()
 
-            # print(np.shape(samples))
+            Path(f"{self.logger.log_dir}/Samples/images/").mkdir(exist_ok=True, parents=True)
+            Path(f"{self.logger.log_dir}/Samples/statistics/").mkdir(exist_ok=True, parents=True)
+
+            # Save histogram for each variables
             plt.clf()
             plt.hist(samples[:, 0])
             # plt.show()
-
             image_file_name = os.path.join(self.logger.log_dir,
-                                           "Samples",
+                                           "Samples/images",
                                            f"{self.logger.name}_Epoch_{self.current_epoch}.png")
-
             plt.savefig(image_file_name)
 
             sample_mean = np.mean(samples, axis=0)
             sample_var = np.var(samples, axis=0)
+            sample_cov = np.cov(samples, rowvar=False)
 
             sample_stat = {"sample_mean": sample_mean.tolist(),
-                           "sample_var": sample_var.tolist()}
+                           "sample_var": sample_var.tolist(),
+                           "sample_z_covariance": sample_cov.tolist()}
 
             sample_stat_file_name = os.path.join(self.logger.log_dir,
-                                           "Samples",
+                                           "Samples/statistics",
                                            f"{self.logger.name}_Epoch_{self.current_epoch}_sample_stat.yml")
 
             with open(sample_stat_file_name, 'w') as outfile:

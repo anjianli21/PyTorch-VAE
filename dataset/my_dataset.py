@@ -31,6 +31,7 @@ class MyDataset(LightningDataModule):
     def __init__(
             self,
             name: str,
+            data_num: int,
             train_batch_size: int = 8,
             val_batch_size: int = 8,
             # patch_size: Union[int, Sequence[int]] = (256, 256),
@@ -42,6 +43,7 @@ class MyDataset(LightningDataModule):
         super().__init__()
 
         self.model_name = name
+        self.data_num = int(data_num)
 
         self.train_batch_size = train_batch_size
         self.val_batch_size = val_batch_size
@@ -56,17 +58,17 @@ class MyDataset(LightningDataModule):
         mean = np.zeros(self.data_dim)
         cov = np.identity(self.data_dim)
 
-        train_size = 100000
-        val_size = 2000
+        train_size = int(self.data_num)
+        val_size = int(self.data_num / 10)
 
-        train_dataset = rs.multivariate_normal(mean, cov, size=train_size) + 5
+        train_dataset = rs.multivariate_normal(mean, cov, size=train_size)
+        plt.hist(train_dataset[:, 0])
+        plt.show()
         if self.model_name == "VAEConv1d":
             train_dataset = np.expand_dims(train_dataset, axis=1)
         # train_dataset = np.tanh(train_dataset)
-        plt.hist(train_dataset[:, 0])
-        plt.show()
 
-        val_dataset = rs.multivariate_normal(mean=mean, cov=cov, size=val_size) + 5
+        val_dataset = rs.multivariate_normal(mean=mean, cov=cov, size=val_size)
         if self.model_name == "VAEConv1d":
             val_dataset = np.expand_dims(val_dataset, axis=1)
         # val_dataset = np.tanh(val_dataset)

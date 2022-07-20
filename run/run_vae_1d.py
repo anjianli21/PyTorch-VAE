@@ -66,11 +66,20 @@ Path(f"{tb_logger.log_dir}/Samples").mkdir(exist_ok=True, parents=True)
 
 print(f"======= Training {config['model_params']['name']} =======")
 
-with open(r'/home/anjian/Desktop/project/PyTorch-VAE/configs/vae_1d.yaml') as file:
-    vae_1d_config = yaml.load(file, Loader=yaml.FullLoader)
+# Save yaml
+if config["model_params"]["name"] == "VAE1d":
+    with open(r'/home/anjian/Desktop/project/PyTorch-VAE/configs/vae_1d.yaml') as file:
+        vae_1d_config = yaml.load(file, Loader=yaml.FullLoader)
 
-path_file = tb_logger.log_dir + "/" + "vae_1d_hparam.yaml"
-with open(path_file, 'w') as file:
-    documents = yaml.dump(vae_1d_config, file)
+    path_file = tb_logger.log_dir + "/" + "vae_1d_hparam.yaml"
+    with open(path_file, 'w') as file:
+        documents = yaml.dump(vae_1d_config, file)
+elif config["model_params"]["name"] == "VAEConv1d":
+    with open(r'/home/anjian/Desktop/project/PyTorch-VAE/configs/vae_conv1d.yaml') as file:
+        vae_1d_config = yaml.load(file, Loader=yaml.FullLoader)
+
+    path_file = tb_logger.log_dir + "/" + "vae_conv1d_hparam.yaml"
+    with open(path_file, 'w') as file:
+        documents = yaml.dump(vae_1d_config, file)
 
 runner.fit(experiment, datamodule=data)
