@@ -13,7 +13,9 @@ from experiment.experiment_vae_1d import ExperimentVAE1d
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.seed import seed_everything
 
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('tkagg')
 
 parser = argparse.ArgumentParser(description='Generic runner for VAE models')
 parser.add_argument('--config', '-c',

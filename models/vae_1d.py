@@ -11,11 +11,13 @@ class VAE1d(BaseVAE):
                  in_dims: int,
                  latent_dim: int,
                  hidden_dims: List = None,
+                 data_distribution: str = "gaussian",
                  **kwargs) -> None:
         super(VAE1d, self).__init__()
 
         self.latent_dim = latent_dim
         self.in_dims = in_dims
+        self.data_distribution = data_distribution
 
         modules = []
         if hidden_dims is None:
@@ -52,10 +54,19 @@ class VAE1d(BaseVAE):
 
         self.decoder = nn.Sequential(*modules)
 
-        self.final_layer = nn.Sequential(
-            nn.Linear(hidden_dims[-1], self.in_dims)
-            # nn.Tanh()  # if use tanh(), then the output is within [-1, 1]
-        )
+        if self.data_distribution == "gaussian":
+            self.final_layer = nn.Sequential(
+                nn.Linear(hidden_dims[-1], self.in_dims)
+                # nn.Tanh()  # if use tanh(), then the output is within [-1, 1]
+            )
+        elif self.data_distribution == "beta":
+            self.final_layer = nn.Sequential(
+                nn.Linear(hidden_dims[-1], self.in_dims),
+                nn.Sigmoid()
+                # nn.Tanh()  # if use tanh(), then the output is within [-1, 1]
+            )
+        else:
+            raise SystemExit('Wrong data distribution assigned')
 
     def encode(self, input: Tensor) -> List[Tensor]:
         """

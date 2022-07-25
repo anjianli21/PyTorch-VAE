@@ -38,6 +38,9 @@ class MyDataset(LightningDataModule):
             num_workers: int = 0,
             pin_memory: bool = False,
             data_dim: int = 64,
+            data_distribution: str = "beta",
+            beta_parameters: list = [2, 5],
+            data_covariance_type: str = "independent",
             **kwargs,
     ):
         super().__init__()
@@ -52,23 +55,71 @@ class MyDataset(LightningDataModule):
         self.pin_memory = pin_memory
         self.data_dim = data_dim
 
-    def setup(self, stage: Optional[str] = None) -> None:
+        self.data_distribution = data_distribution
+        self.beta_parameters = beta_parameters
+        self.data_covariance_type = data_covariance_type
 
-        rs = np.random.RandomState(seed=0)
-        mean = np.zeros(self.data_dim)
-        cov = np.identity(self.data_dim)
+    def setup(self, stage: Optional[str] = None) -> None:
 
         train_size = int(self.data_num)
         val_size = int(self.data_num / 10)
 
-        train_dataset = rs.multivariate_normal(mean, cov, size=train_size)
-        plt.hist(train_dataset[:, 0])
-        plt.show()
+        rs = np.random.RandomState(seed=0)
+
+        if self.data_distribution == "gaussian":
+
+            if self.data_covariance_type == "independent":
+                mean = np.zeros(self.data_dim)
+                cov = np.identity(self.data_dim)
+            elif self.data_covariance_type == "half_dependent_half_independent":
+                mean = np.zeros(self.data_dim)
+                cov = np.identity(self.data_dim)
+                for i in range(int(self.data_dim / 2)):
+                    for j in range(int(self.data_dim / 2)):
+                        if i != j:
+                            cov[i, j] = 1/2
+
+            else:
+                raise SystemExit('Wrong data covariance type assigned')
+
+            train_dataset = rs.multivariate_normal(mean, cov, size=train_size)
+            val_dataset = rs.multivariate_normal(mean=mean, cov=cov, size=val_size)
+
+            plt.clf()
+            plt.hist(train_dataset[:, 0])
+            plt.show()
+
+            # plt.clf()
+            # plt.matshow(np.cov(train_dataset, rowvar=False))
+            # plt.colorbar()
+            # plt.show()
+
+        elif self.data_distribution == "beta":
+            alpha, beta = self.beta_parameters
+
+            train_dataset = rs.beta(alpha, beta, size=(train_size, self.data_dim))
+            val_dataset = rs.beta(alpha, beta, size=(val_size, self.data_dim))
+
+            # train_dataset = train_dataset - np.mean(train_dataset, axis=0)
+            # val_dataset = val_dataset - np.mean(val_dataset, axis=0)
+
+            plt.clf()
+            plt.hist(train_dataset[:, 0])
+            plt.show()
+
+            # plt.clf()
+            # plt.matshow(np.cov(train_dataset, rowvar=False))
+            # plt.colorbar()
+            # plt.show()
+
+        else:
+            raise SystemExit('Wrong data distribution assigned')
+
+        # If using convolutional network, should expand the data dim to add channel
         if self.model_name == "VAEConv1d":
             train_dataset = np.expand_dims(train_dataset, axis=1)
         # train_dataset = np.tanh(train_dataset)
 
-        val_dataset = rs.multivariate_normal(mean=mean, cov=cov, size=val_size)
         if self.model_name == "VAEConv1d":
             val_dataset = np.expand_dims(val_dataset, axis=1)
         # val_dataset = np.tanh(val_dataset)

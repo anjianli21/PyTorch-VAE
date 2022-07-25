@@ -42,12 +42,13 @@ seed_everything(config['exp_params']['manual_seed'], True)
 
 model = vae_models[config['model_params']['name']](**config['model_params'], **config['data_params'])
 experiment = ExperimentVAE1d(model,
-                             config['exp_params'])
+                             config['exp_params'], config["data_params"])
 
 # use **config to represent a bunch of parameters instead of one parameter?
 data = MyDataset(**config["data_params"], **config['model_params'], pin_memory=len(config['trainer_params']['gpus']) != 0)
-
+print("start setting up data")
 data.setup()
+print("data ready!")
 runner = Trainer(logger=tb_logger,
                  callbacks=[
                      LearningRateMonitor(),

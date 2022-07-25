@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+import scipy
 
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 import yaml
@@ -21,11 +22,13 @@ class ExperimentVAE1d(pl.LightningModule):
 
     def __init__(self,
                  vae_model: BaseVAE,
-                 params: dict) -> None:
+                 params: dict,
+                 data_params: dict) -> None:
         super(ExperimentVAE1d, self).__init__()
 
         self.model = vae_model
         self.params = params
+        self.data_params = data_params
         self.curr_device = None
         self.hold_graph = False
         try:
@@ -98,22 +101,50 @@ class ExperimentVAE1d(pl.LightningModule):
                                            f"{self.logger.name}_Epoch_{self.current_epoch}.png")
             plt.savefig(image_file_name)
 
-            sample_mean = np.mean(samples, axis=0)
-            sample_var = np.var(samples, axis=0)
-            sample_cov = np.cov(samples, rowvar=False)
+            if self.data_params["data_distribution"] == "gaussian":
+                sample_mean = np.mean(samples, axis=0)
+                sample_var = np.var(samples, axis=0)
+                sample_cov = np.cov(samples, rowvar=False)
 
-            plt.clf()
-            plt.matshow(sample_cov)
-            plt.colorbar()
-            # plt.show()
-            cov_file_name = os.path.join(self.logger.log_dir,
-                                           "Samples/images",
-                                           f"{self.logger.name}_Epoch_{self.current_epoch}_covariance.png")
-            plt.savefig(cov_file_name)
+                plt.clf()
+                plt.matshow(sample_cov)
+                plt.colorbar()
+                # plt.show()
+                cov_file_name = os.path.join(self.logger.log_dir,
+                                               "Samples/images",
+                                               f"{self.logger.name}_Epoch_{self.current_epoch}_covariance.png")
+                plt.savefig(cov_file_name)
 
-            sample_stat = {"sample_mean": sample_mean.tolist(),
-                           "sample_var": sample_var.tolist(),
-                           "sample_z_covariance": sample_cov.tolist()}
+                sample_stat = {"sample_mean": sample_mean.tolist(),
+                               "sample_var": sample_var.tolist(),
+                               "sample_z_covariance": sample_cov.tolist()}
+
+            elif self.data_params["data_distribution"] == "beta":
+
+                # TODO: manually add mean
+                # samples += 0.28578897
+
+                # Clip samples to be within (0, 1)
+                # samples[samples >= 1] = 0.9999999
+                # samples[samples <= 0] = 0.0000001
+
+                sample_alpha, sample_beta, _, _ = scipy.stats.beta.fit(samples, floc=0, fscale=1)
+
+                sample_cov = np.cov(samples, rowvar=False)
+
+                plt.clf()
+                plt.matshow(sample_cov)
+                plt.colorbar()
+                plt.show()
+
+                cov_file_name = os.path.join(self.logger.log_dir,
+                                             "Samples/images",
+                                             f"{self.logger.name}_Epoch_{self.current_epoch}_covariance.png")
+                plt.savefig(cov_file_name)
+
+                sample_stat = {"sample_alpha": sample_alpha.tolist(),
+                               "sample_beta": sample_beta.tolist(),
+                               "sample_z_covariance": sample_cov.tolist()}
 
             sample_stat_file_name = os.path.join(self.logger.log_dir,
                                            "Samples/statistics",
