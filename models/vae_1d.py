@@ -66,7 +66,10 @@ class VAE1d(BaseVAE):
                 # nn.Tanh()  # if use tanh(), then the output is within [-1, 1]
             )
         else:
-            raise SystemExit('Wrong data distribution assigned')
+            self.final_layer = nn.Sequential(
+                nn.Linear(hidden_dims[-1], self.in_dims)
+            )
+            # raise SystemExit('Wrong data distribution assigned')
 
     def encode(self, input: Tensor) -> List[Tensor]:
         """

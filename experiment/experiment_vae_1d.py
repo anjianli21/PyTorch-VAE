@@ -92,16 +92,10 @@ class ExperimentVAE1d(pl.LightningModule):
             Path(f"{self.logger.log_dir}/Samples/images/").mkdir(exist_ok=True, parents=True)
             Path(f"{self.logger.log_dir}/Samples/statistics/").mkdir(exist_ok=True, parents=True)
 
-            # Save histogram for each variables
-            plt.clf()
-            plt.hist(samples[:, 0])
-            # plt.show()
-            image_file_name = os.path.join(self.logger.log_dir,
-                                           "Samples/images",
-                                           f"{self.logger.name}_Epoch_{self.current_epoch}.png")
-            plt.savefig(image_file_name)
-
             if self.data_params["data_distribution"] == "gaussian":
+
+                self.save_images(samples=samples)
+
                 sample_mean = np.mean(samples, axis=0)
                 sample_var = np.var(samples, axis=0)
                 sample_cov = np.cov(samples, rowvar=False)
@@ -125,17 +119,27 @@ class ExperimentVAE1d(pl.LightningModule):
                 # samples += 0.28578897
 
                 # Clip samples to be within (0, 1)
-                # samples[samples >= 1] = 0.9999999
-                # samples[samples <= 0] = 0.0000001
+                samples[samples >= 1] = 0.9999999
+                samples[samples <= 0] = 0.0000001
 
-                sample_alpha, sample_beta, _, _ = scipy.stats.beta.fit(samples, floc=0, fscale=1)
+                self.save_images(samples=samples)
+
+                # fit param
+                sample_alpha = []
+                sample_beta = []
+                for i in range(self.data_params["data_dim"]):
+                    sample_alpha_curr, sample_beta_curr, _, _ = scipy.stats.beta.fit(samples[:, i], floc=0, fscale=1)
+                    sample_alpha.append(sample_alpha_curr)
+                    sample_beta.append(sample_beta_curr)
+                sample_alpha = np.asarray(sample_alpha)
+                sample_beta = np.asarray(sample_beta)
 
                 sample_cov = np.cov(samples, rowvar=False)
 
                 plt.clf()
                 plt.matshow(sample_cov)
                 plt.colorbar()
-                plt.show()
+                # plt.show()
 
                 cov_file_name = os.path.join(self.logger.log_dir,
                                              "Samples/images",
@@ -145,6 +149,76 @@ class ExperimentVAE1d(pl.LightningModule):
                 sample_stat = {"sample_alpha": sample_alpha.tolist(),
                                "sample_beta": sample_beta.tolist(),
                                "sample_z_covariance": sample_cov.tolist()}
+
+            elif self.data_params["data_distribution"] == "gaussian_beta_distribution":
+                # first half gaussian, second half beta
+                samples_gaussian = samples[:, :int(self.data_params["data_dim"] / 2)]
+                samples_beta = samples[:, int(self.data_params["data_dim"] / 2):]
+                # Clip beta_samples to be within (0, 1)
+                samples_beta[samples_beta >= 1] = 0.9999999
+                samples_beta[samples_beta <= 0] = 0.0000001
+
+                # print(np.shape(samples_gaussian))
+                # print(np.shape(samples_beta))
+
+                sample_gaussian_mean = np.mean(samples_gaussian, axis=0)
+                sample_gaussian_var = np.var(samples_gaussian, axis=0)
+                sample_gaussian_cov = np.cov(samples_gaussian, rowvar=False)
+
+                # show the first gaussian samples
+                plt.clf()
+                plt.hist(samples_gaussian[:, 0])
+                # plt.show()
+                image_file_name = os.path.join(self.logger.log_dir,
+                                               "Samples/images",
+                                               f"{self.logger.name}_Epoch_{self.current_epoch}_first_gaussian_samples.png")
+                plt.savefig(image_file_name)
+
+                # show the first beta samples
+                plt.clf()
+                plt.hist(samples_beta[:, 0])
+                # plt.show()
+                image_file_name = os.path.join(self.logger.log_dir,
+                                               "Samples/images",
+                                               f"{self.logger.name}_Epoch_{self.current_epoch}_first_beta_samples.png")
+                plt.savefig(image_file_name)
+
+                # Show gaussian covariance
+                plt.clf()
+                plt.matshow(sample_gaussian_cov)
+                plt.colorbar()
+                # plt.show()
+                cov_file_name = os.path.join(self.logger.log_dir,
+                                             "Samples/images",
+                                             f"{self.logger.name}_Epoch_{self.current_epoch}_gaussian_covariance.png")
+                plt.savefig(cov_file_name)
+
+                sample_beta_alpha, sample_beta_beta, _, _ = scipy.stats.beta.fit(samples_beta, floc=0, fscale=1)
+
+                sample_beta_cov = np.cov(samples_beta, rowvar=False)
+
+                plt.clf()
+                plt.matshow(sample_beta_cov)
+                plt.colorbar()
+                # plt.show()
+
+                cov_file_name = os.path.join(self.logger.log_dir,
+                                             "Samples/images",
+                                             f"{self.logger.name}_Epoch_{self.current_epoch}_beta_covariance.png")
+                plt.savefig(cov_file_name)
+
+                sample_stat = {"sample_gaussian_mean": sample_gaussian_mean.tolist(),
+                               "sample_gaussian_var": sample_gaussian_var.tolist(),
+                               "sample_gaussian_z_covariance": sample_gaussian_cov.tolist(),
+                               "sample_beta_alpha": sample_beta_alpha.tolist(),
+                               "sample_beta_beta": sample_beta_beta.tolist(),
+                               "sample_beta_z_covariance": sample_beta_cov.tolist()
+                               }
+
+            elif self.data_params["data_distribution"] == "gaussian_mixture":
+                self.save_images(samples=samples)
+                sample_mean = np.mean(samples, axis=0)
+                sample_stat = {"sample_mean": sample_mean.tolist()}
 
             sample_stat_file_name = os.path.join(self.logger.log_dir,
                                            "Samples/statistics",
@@ -219,3 +293,32 @@ class ExperimentVAE1d(pl.LightningModule):
                 return optims, scheds
         except:
             return optims
+
+    def save_images(self, samples):
+
+        # show the first dimensional samples
+        plt.clf()
+        plt.hist(samples[:, 0])
+        # plt.show()
+        image_file_name = os.path.join(self.logger.log_dir,
+                                       "Samples/images",
+                                       f"{self.logger.name}_Epoch_{self.current_epoch}_first_samples.png")
+        plt.savefig(image_file_name)
+
+        # show the middle dimensional samples
+        plt.clf()
+        plt.hist(samples[:, int(self.data_params["data_dim"] / 2)])
+        # plt.show()
+        image_file_name = os.path.join(self.logger.log_dir,
+                                       "Samples/images",
+                                       f"{self.logger.name}_Epoch_{self.current_epoch}_middle_samples.png")
+        plt.savefig(image_file_name)
+
+        # show the last dimensional samples
+        plt.clf()
+        plt.hist(samples[:, -1])
+        # plt.show()
+        image_file_name = os.path.join(self.logger.log_dir,
+                                       "Samples/images",
+                                       f"{self.logger.name}_Epoch_{self.current_epoch}_last_samples.png")
+        plt.savefig(image_file_name)
