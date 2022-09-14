@@ -11,7 +11,6 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from dataset.dataset import VAEDataset
-from dataset.gaussian_dataset import GaussianDataset
 
 from pytorch_lightning.plugins import DDPPlugin
 
