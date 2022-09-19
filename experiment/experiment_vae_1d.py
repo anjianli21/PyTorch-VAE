@@ -220,6 +220,10 @@ class ExperimentVAE1d(pl.LightningModule):
                 sample_mean = np.mean(samples, axis=0)
                 sample_stat = {"sample_mean": sample_mean.tolist()}
 
+            elif self.data_params["data_distribution"] == "cr3bp_earth_local_optimal":
+                sample_mean = np.mean(samples, axis=0)
+                sample_stat = {"sample_mean": sample_mean.tolist()}
+
             sample_stat_file_name = os.path.join(self.logger.log_dir,
                                            "Samples/statistics",
                                            f"{self.logger.name}_Epoch_{self.current_epoch}_sample_stat.yml")

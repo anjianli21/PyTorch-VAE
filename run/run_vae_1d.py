@@ -15,7 +15,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from dataset.my_dataset import MyDataset
+from dataset.gaussian_beta_dataset import GaussianBetaDataset
+from dataset.cr3bp_earth_dataset import CR3BPEarthDataset
 
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.core.saving import save_hparams_to_yaml
@@ -25,7 +26,10 @@ parser.add_argument('--config', '-c',
                     dest="filename",
                     metavar='FILE',
                     help='path to the config file',
-                    default='configs/vae_1d.yaml')
+                    default='configs/vae_1d_gaussian_beta.yaml')
+parser.add_argument('--dataset',
+                    help='specify the training data',
+                    default='GaussianBeta')
 
 args = parser.parse_args()
 with open(args.filename, 'r') as file:
@@ -35,7 +39,7 @@ with open(args.filename, 'r') as file:
         print(exc)
 
 tb_logger = TensorBoardLogger(save_dir=config['logging_params']['save_dir'],
-                              name=config['model_params']['name'], )
+                              name=config['logging_params']['name'], )
 
 # For reproducibility
 seed_everything(config['exp_params']['manual_seed'], True)
@@ -45,10 +49,16 @@ experiment = ExperimentVAE1d(model,
                              config['exp_params'], config["data_params"])
 
 # use **config to represent a bunch of parameters instead of one parameter?
-data = MyDataset(**config["data_params"], **config['model_params'], pin_memory=len(config['trainer_params']['gpus']) != 0)
+if args.dataset == 'GaussianBeta':
+    data = GaussianBetaDataset(**config["data_params"], **config['model_params'], pin_memory=len(config['trainer_params']['gpus']) != 0)
+elif args.dataset == "cr3bp_earth":
+    data = CR3BPEarthDataset(**config["data_params"], **config['model_params'], pin_memory=len(config['trainer_params']['gpus']) != 0)
+
 print("start setting up data")
 data.setup()
 print("data ready!")
+
+# Run the training
 runner = Trainer(logger=tb_logger,
                  callbacks=[
                      LearningRateMonitor(),
@@ -69,18 +79,19 @@ print(f"======= Training {config['model_params']['name']} =======")
 
 # Save yaml
 if config["model_params"]["name"] == "VAE1d":
-    with open(r'/home/anjian/Desktop/project/PyTorch-VAE/configs/vae_1d.yaml') as file:
-        vae_1d_config = yaml.load(file, Loader=yaml.FullLoader)
+    if args.dataset == 'GaussianBeta':
+        with open(r'/home/anjian/Desktop/project/PyTorch-VAE/configs/vae_1d_gaussian_beta.yaml') as file:
+            vae_1d_config = yaml.load(file, Loader=yaml.FullLoader)
 
-    path_file = tb_logger.log_dir + "/" + "vae_1d_hparam.yaml"
-    with open(path_file, 'w') as file:
-        documents = yaml.dump(vae_1d_config, file)
-elif config["model_params"]["name"] == "VAEConv1d":
-    with open(r'/home/anjian/Desktop/project/PyTorch-VAE/configs/vae_conv1d.yaml') as file:
-        vae_1d_config = yaml.load(file, Loader=yaml.FullLoader)
+        path_file = tb_logger.log_dir + "/" + "vae_1d_gaussian_beta_hparam.yaml"
+        with open(path_file, 'w') as file:
+            documents = yaml.dump(vae_1d_config, file)
+    if args.dataset == "cr3bp_earth":
+        with open(r'/home/anjian/Desktop/project/PyTorch-VAE/configs/vae_1d_cr3bp_earth.yaml') as file:
+            vae_1d_config = yaml.load(file, Loader=yaml.FullLoader)
 
-    path_file = tb_logger.log_dir + "/" + "vae_conv1d_hparam.yaml"
-    with open(path_file, 'w') as file:
-        documents = yaml.dump(vae_1d_config, file)
+        path_file = tb_logger.log_dir + "/" + "vae_1d_cr3bp_earth_hparam.yaml"
+        with open(path_file, 'w') as file:
+            documents = yaml.dump(vae_1d_config, file)
 
 runner.fit(experiment, datamodule=data)

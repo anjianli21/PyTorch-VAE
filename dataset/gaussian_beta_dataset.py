@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import truncnorm
 
 
-class MyDataset(LightningDataModule):
+class GaussianBetaDataset(LightningDataModule):
     """
     PyTorch Lightning data module
 
