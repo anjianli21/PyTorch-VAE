@@ -65,6 +65,11 @@ class VAE1d(BaseVAE):
                 nn.Sigmoid()
                 # nn.Tanh()  # if use tanh(), then the output is within [-1, 1]
             )
+        elif self.data_distribution == "cr3bp_earth_local_optimal":
+            self.final_layer = nn.Sequential(
+                nn.Linear(hidden_dims[-1], self.in_dims),
+                nn.Sigmoid()
+            )
         else:
             self.final_layer = nn.Sequential(
                 nn.Linear(hidden_dims[-1], self.in_dims)

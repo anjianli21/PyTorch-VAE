@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 import scipy
+import pickle
+import pandas as pd
+import seaborn as sns
 
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 import yaml
@@ -91,6 +94,7 @@ class ExperimentVAE1d(pl.LightningModule):
 
             Path(f"{self.logger.log_dir}/Samples/images/").mkdir(exist_ok=True, parents=True)
             Path(f"{self.logger.log_dir}/Samples/statistics/").mkdir(exist_ok=True, parents=True)
+            Path(f"{self.logger.log_dir}/Samples/data/").mkdir(exist_ok=True, parents=True)
 
             if self.data_params["data_distribution"] == "gaussian":
 
@@ -221,8 +225,52 @@ class ExperimentVAE1d(pl.LightningModule):
                 sample_stat = {"sample_mean": sample_mean.tolist()}
 
             elif self.data_params["data_distribution"] == "cr3bp_earth_local_optimal":
-                sample_mean = np.mean(samples, axis=0)
-                sample_stat = {"sample_mean": sample_mean.tolist()}
+
+                # scale back samples to snopt solutions
+                min_max_data_path = "Data/cr3bp_earth/default_local_optimal_solution_0911_0912_min_max.pickle"
+                with open(min_max_data_path, "rb") as f:  # load pickle
+                    min_max_data = pickle.load(f)
+                data_min = min_max_data["data_min"]
+                data_max = min_max_data["data_max"]
+                rescale_samples = samples * (data_max - data_min) + data_min
+
+                # Save samples
+                if self.current_epoch % 1 == 0:
+                    file_path = os.path.join(self.logger.log_dir,
+                                           "Samples/data",
+                                           f"{self.logger.name}_Epoch_{self.current_epoch}_data.pkl")
+                    with open(file_path, "wb") as fp:  # write pickle
+                        pickle.dump(rescale_samples, fp)
+
+                # Save control confidence plot
+                num_segments = 20
+                control_list = []
+                for sample in rescale_samples:
+                    current_control = sample[3: 11 * 3]
+                    for i in range(10):
+                        index = 20 - i
+                        current_control = np.append(current_control, sample[index * 3: (index + 1) * 3])
+                    control_list.append([current_control])
+                control = np.asarray(control_list).reshape(100000, num_segments, 3)
+                radius = np.squeeze(control[:, :, -1])
+                radius_df = pd.DataFrame(radius, columns=['{:d}'.format(i) for i in range(num_segments)])
+                fig, ax = plt.subplots()
+                df = pd.melt(frame=radius_df,
+                             var_name='timestep',
+                             value_name='control radius')
+                sns.lineplot(ax=ax,
+                             data=df,
+                             x='timestep',
+                             y='control radius',
+                             sort=False).set(title='95% confidence intervel of control radius')
+                image_file_name = os.path.join(self.logger.log_dir,
+                                               "Samples/images",
+                                               f"{self.logger.name}_Epoch_{self.current_epoch}_control_confidence.png")
+                fig.savefig(image_file_name)
+                plt.close()
+                print(self.current_epoch)
+
+                sample_stat = {}
 
             sample_stat_file_name = os.path.join(self.logger.log_dir,
                                            "Samples/statistics",

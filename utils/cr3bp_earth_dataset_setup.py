@@ -26,8 +26,10 @@ def cr3bp_earth_dataset_setup(data_dir_list, data_distribution, train_size, val_
             for data_point in data_list:
                 if data_point["snopt_inform"] == 1 and data_point["feasibility"]:
                     data.append(data_point["results.control"])
+        with open(file_path, "wb") as fp:  # write pickle
+            pickle.dump(data, fp)
     else:
-        with open(file_path, "rb") as f:  # Pickling
+        with open(file_path, "rb") as f:  # load pickle
             data = pickle.load(f)
 
     data = np.asarray(data)
@@ -35,8 +37,16 @@ def cr3bp_earth_dataset_setup(data_dir_list, data_distribution, train_size, val_
         warnings.warn("not enough data!")
         exit()
 
+    # Normalize the data
     normalized_data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))
     print(f"min of data is {np.min(data, axis=0)}, max of data is {np.max(data, axis=0)}")
+
+    # Save min and max of the data
+    min_max_data_path = "Data/cr3bp_earth/default_local_optimal_solution_0911_0912_min_max.pickle"
+    min_max_data = {"data_min": np.min(data, axis=0),
+                    "data_max": np.max(data, axis=0)}
+    with open(min_max_data_path, "wb") as fp:  # write pickle
+        pickle.dump(min_max_data, fp)
 
     train_data = normalized_data[:train_size, :]
     val_data = normalized_data[train_size:train_size + val_size, :]
