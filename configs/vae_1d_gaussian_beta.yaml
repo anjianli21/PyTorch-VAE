@@ -1,6 +1,6 @@
 model_params:
   name: 'VAE1d'
-  in_dims: 16  # 16, 64
+  in_dims: 64  # 16, 64
   latent_dim: 64  # 8, 64
   hidden_dims: [256, 128]  # [32, 16], [256, 128]
 
@@ -8,12 +8,12 @@ data_params:
   train_batch_size: 5012  # 64, 5012
   val_batch_size:  5012  # 64, 5012
   num_workers: 4
-  data_dim: 16  # 16, 64 should be the same as hidden_dims
-  data_num: 10000000 # 100000, 10000000
-  data_distribution: "beta"  # gaussian or beta or gaussian_beta_distribution or gaussian_mixture
+  data_dim: 64  # 16, 64 should be the same as hidden_dims
+  data_num: 100000 # 100000, 10000000
+  data_distribution: "gaussian"  # gaussian or beta or gaussian_beta_distribution or gaussian_mixture
   beta_type: "mixed" # unified or mixed
   beta_parameters: [0.5, 0.5]  # [2, 5], [0.5, 0.5], [5, 1] [alpha, beta]
-  gaussian_covariance_type: "large_var" # independent or half_dependent_half_independent or large_var or mixed_var
+  gaussian_covariance_type: "independent" # independent or half_dependent_half_independent or large_var or mixed_var
   gaussian_var: 1.0 # 1.0, 10.0
   gaussian_mixture_mean: [-3, 3]  # [-1, 10] or [-3, 3]
   gaussian_mixture_var: [2, 2]  # [1, 5] or [2, 2]

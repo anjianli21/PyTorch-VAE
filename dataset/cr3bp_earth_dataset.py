@@ -35,6 +35,8 @@ class CR3BPEarthDataset(LightningDataModule):
             name: str,
             data_num: int,
             data_dir: list,
+            data_output_file_name: str,
+            data_min_max_file_name: str,
             train_batch_size: int = 8,
             val_batch_size: int = 8,
             # patch_size: Union[int, Sequence[int]] = (256, 256),
@@ -57,6 +59,8 @@ class CR3BPEarthDataset(LightningDataModule):
         self.data_dim = data_dim
         self.data_distribution = data_distribution
         self.data_dir_list = data_dir
+        self.data_output_file_name = data_output_file_name
+        self.data_min_max_file_name = data_min_max_file_name
 
     def setup(self, stage: Optional[str] = None) -> None:
 
@@ -65,7 +69,9 @@ class CR3BPEarthDataset(LightningDataModule):
 
         train_dataset, val_dataset = cr3bp_earth_dataset_setup(data_dir_list=self.data_dir_list,
                                                                data_distribution=self.data_distribution,
-                                                               train_size=train_size, val_size=val_size)
+                                                               train_size=train_size, val_size=val_size,
+                                                               data_output_file_name=self.data_output_file_name,
+                                                               data_min_max_file_name=self.data_min_max_file_name)
 
         self.train_dataset = torch.from_numpy(train_dataset).float()
         self.val_dataset = torch.from_numpy(val_dataset).float()

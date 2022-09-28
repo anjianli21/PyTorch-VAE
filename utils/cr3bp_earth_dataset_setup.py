@@ -4,33 +4,34 @@ import os
 import warnings
 from sklearn import preprocessing
 
-def cr3bp_earth_dataset_setup(data_dir_list, data_distribution, train_size, val_size):
+def cr3bp_earth_dataset_setup(data_dir_list, data_distribution, train_size, val_size, data_output_file_name,
+                              data_min_max_file_name):
 
     if data_distribution == "cr3bp_earth_local_optimal":
-        file_path = "Data/cr3bp_earth/default_local_optimal_solution_0911_0912.pickle"
+        # TODO:  file name with date is hacked
+        file_path = data_output_file_name
+        if not os.path.exists(file_path):
+            data_file_list = []
+
+            for data_dir in data_dir_list:
+                for root, dirs, files in os.walk(data_dir):
+                    files = [root + '/' + file for file in files]
+                    data_file_list.extend(files)
+
+            data = []
+            for file in data_file_list:
+                f = open(file, 'rb')
+                data_list = pickle.load(f)
+                data.extend(data_list)
+            with open(file_path, "wb") as fp:  # write pickle
+                pickle.dump(data, fp)
+            print("data is saved!")
+        else:
+            with open(file_path, "rb") as f:  # load pickle
+                data = pickle.load(f)
     else:
         warnings.warn("incorrect data type")
         exit()
-    if not os.path.exists(file_path):
-        data_file_list = []
-
-        for data_dir in data_dir_list:
-            for root, dirs, files in os.walk(data_dir):
-                files = [root + '/' + file for file in files]
-                data_file_list.extend(files)
-
-        data = []
-        for file in data_file_list:
-            f = open(file, 'rb')
-            data_list = pickle.load(f)
-            for data_point in data_list:
-                if data_point["snopt_inform"] == 1 and data_point["feasibility"]:
-                    data.append(data_point["results.control"])
-        with open(file_path, "wb") as fp:  # write pickle
-            pickle.dump(data, fp)
-    else:
-        with open(file_path, "rb") as f:  # load pickle
-            data = pickle.load(f)
 
     data = np.asarray(data)
     if np.shape(data)[0] < train_size + val_size:
@@ -39,10 +40,11 @@ def cr3bp_earth_dataset_setup(data_dir_list, data_distribution, train_size, val_
 
     # Normalize the data
     normalized_data = (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))
-    print(f"min of data is {np.min(data, axis=0)}, max of data is {np.max(data, axis=0)}")
+    # print(f"min of data is {np.min(data, axis=0)}, max of data is {np.max(data, axis=0)}")
 
     # Save min and max of the data
-    min_max_data_path = "Data/cr3bp_earth/default_local_optimal_solution_0911_0912_min_max.pickle"
+    if data_distribution == "cr3bp_earth_local_optimal":
+        min_max_data_path = data_min_max_file_name
     min_max_data = {"data_min": np.min(data, axis=0),
                     "data_max": np.max(data, axis=0)}
     with open(min_max_data_path, "wb") as fp:  # write pickle
