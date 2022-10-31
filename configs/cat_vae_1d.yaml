@@ -1,0 +1,39 @@
+model_params:
+  name: 'CategoricalVAE1d'
+  in_dims: 64
+  latent_dim: 64
+  hidden_dims: [256, 128]
+  categorical_dim: 40
+  temperature: 0.5
+  anneal_rate: 0.00003
+  anneal_interval: 20 # 100
+  alpha: 1.0
+
+data_params:
+  train_batch_size: 512  # 64, 5012, 4096
+  val_batch_size:  512  # 64, 5012, 4096
+  num_workers: 4
+  data_dim: 64  # 16, 64 should be the same as hidden_dims
+  data_num: 22000 # 400000, 220000
+  data_distribution: "cr3bp_earth_local_optimal"  # "cr3bp_earth_local_optimal", "cr3bp_earth_local_optimal_augmented"
+  data_dir: ["/home/anjian/Desktop/project/PyTorch-VAE/Data/cr3bp_earth/della_default_local_optimal_solution"]
+#  data_output_file_name: "/home/anjian/Desktop/project/global_optimization/pydylan-wrapper/result/solution/from_della/default_local_optimal_47k_mass_415.pickle"
+#  data_min_max_file_name: "/home/anjian/Desktop/project/global_optimization/pydylan-wrapper/result/solution/from_della/default_local_optimal_47k_mass_415_min_max.pickle"
+  data_output_file_name: "/home/anjian/Desktop/project/global_optimization/pydylan-wrapper/result/solution/from_della/default_local_optimal_47k_mass_0.pickle"
+  data_min_max_file_name: "/home/anjian/Desktop/project/global_optimization/pydylan-wrapper/result/solution/from_della/default_local_optimal_47k_mass_0_min_max.pickle"
+
+
+exp_params:
+  LR: 0.001  # 0.005, 0.001
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  kld_weight: 0.00025
+  manual_seed: 77
+
+trainer_params:
+  gpus: [0]
+  max_epochs: 100
+
+logging_params:
+  save_dir: "logs/"
+  name: "CategoricalVAE1d"

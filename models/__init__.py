@@ -23,7 +23,7 @@ from .betatc_vae import *
 from .dip_vae import *
 from .vae_1d import *
 from .vae_conv1d import *
-
+from .cat_vae_1d import *
 
 # Aliases
 VAE = VanillaVAE
@@ -53,4 +53,5 @@ vae_models = {'HVAE':HVAE,
               'ConditionalVAE':ConditionalVAE,
               'CategoricalVAE':CategoricalVAE,
               'VAE1d':VAE1d,
-              "VAEConv1d":VAEConv1d}
+              "VAEConv1d":VAEConv1d,
+              "CategoricalVAE1d":CategoricalVAE1d}

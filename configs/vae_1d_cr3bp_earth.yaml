@@ -9,11 +9,11 @@ data_params:
   val_batch_size:  4096  # 64, 5012, 4096
   num_workers: 4
   data_dim: 64  # 16, 64 should be the same as hidden_dims
-  data_num: 98000 # 98000, 180000, 10000000
+  data_num: 220000 # 400000, 98000, 180000, 10000000
   data_distribution: "cr3bp_earth_local_optimal"  # "cr3bp_earth_local_optimal", "cr3bp_earth_local_optimal_augmented"
   data_dir: ["/home/anjian/Desktop/project/PyTorch-VAE/Data/cr3bp_earth/della_default_local_optimal_solution"]
-  data_output_file_name: "Data/cr3bp_earth/della_default_local_optimal_solution/default_local_optimal_solution_0911-17.pickle"
-  data_min_max_file_name: "Data/cr3bp_earth/min_max/default_local_optimal_solution_0911-17_min_max.pickle"
+  data_output_file_name: "/home/anjian/Desktop/project/global_optimization/pydylan-wrapper/result/solution/from_della/default_local_optimal_47k_mass_415.pickle"
+  data_min_max_file_name: "/home/anjian/Desktop/project/global_optimization/pydylan-wrapper/result/solution/from_della/default_local_optimal_47k_mass_415_min_max.pickle"
 
 exp_params:
   LR: 0.001  # 0.005, 0.001
